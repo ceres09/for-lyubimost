@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Nikitos_Kaneki_prime v2.1</title>
+    <style>
+        body {
+            background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
+                        url('images/image2.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            color: #F5F5F5ce;
+            font-family: "Courier New", Courier, monospace;
+            margin: 0;
+            padding: 20px;
+            height: 100vh;
+            box-sizing: border-box;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        body::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 20%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 3;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        .input-line {
+            display: flex;
+            align-items: center;
+            margin-top: 5px;
+        }
+
+        .prompt {
+            margin-right: 8px;
+        }
+
+        input {
+            background: transparent;
+            border: none;
+            color: #F5F5F5;
+            font-family: inherit;
+            font-size: inherit;
+            text-shadow: inherit;
+            outline: none;
+            width: 100%;
+            caret-color: transparent;
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 10px;
+            height: 1.2em;
+            background-color: #F5F5F5;
+            animation: blink 1s step-end infinite;
+            vertical-align: bottom;
+            margin-left: 2px;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        #heartCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1; 
+            pointer-events: none;
+        }
+
+        #terminal {
+            height: 100%;
+            width: 70%;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            position: relative;
+            z-index: 2;
+            font-size: 1.1em;
+            text-shadow: 0 0 5px rgba(255, 176, 0, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="heartCanvas"></canvas>
+    <div id="terminal"></div>
+
+    <script>
+        // --- ЗАЩИТА ОТ F12 И ПРАВОЙ КНОПКИ МЫШИ ---
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (
+                e.key === 'F12' || 
+                e.keyCode === 123 ||
+                (e.ctrlKey && e.shiftKey && ['I', 'i', 'J', 'j', 'C', 'c', 'О', 'о', 'Ш', 'ш', 'С', 'с'].includes(e.key)) ||
+                (e.ctrlKey && ['U', 'u', 'Г', 'г', 'S', 's', 'Ы', 'ы'].includes(e.key))
+            ) {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        // --- АНИМАЦИЯ 3D СЕРДЦА ---
+        const canvas = document.getElementById('heartCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const particles = [];
+        for (let i = 0; i < 700; i++) {
+            let tOffset = Math.random() * Math.PI * 2;
+            let noiseX = (Math.random() - 0.5) * 100;
+            let noiseY = (Math.random() - 0.5) * 100;
+            let z = (Math.random() - 0.5) * 500; 
+
+            particles.push({ tOffset, noiseX, noiseY, z, text: "お誕生日おめでとう" });
+        }
+
+        let time = 0;
+
+        function drawHeart() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            time += 0.0009; 
+
+            const scale = Math.min(canvas.width, canvas.height) / 32; 
+            const angle = -30 * (Math.PI / 180);
+            const cosA = Math.cos(angle);
+            const sinA = Math.sin(angle);
+
+            const currentParticles = particles.map(p => {
+                let t = p.tOffset + time; 
+                
+                let hx = 16 * Math.pow(Math.sin(t), 3);
+                let hy = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+                
+                let x = (hx + p.noiseX) * scale;
+                let y = (hy + p.noiseY) * scale;
+                
+                let z = p.z * (scale / 4);
+                
+                let rotatedX = x * cosA - z * sinA;
+                let rotatedZ = x * sinA + z * cosA;
+                
+                return { x: rotatedX, y: y, z: rotatedZ, text: p.text };
+            });
+
+            currentParticles.sort((a, b) => a.z - b.z);
+
+            ctx.font = "bold 14px Consolas, monospace";
+            ctx.textAlign = "center";
+
+            currentParticles.forEach(p => {
+                const heartCenterX = canvas.width / 3.2;
+                const heartCenterY = (canvas.height / 2.2) - (scale * 1); 
+                
+                let px = heartCenterX + p.x;
+                let py = heartCenterY + p.y;
+                
+                let depthNorm = p.z / (15 * scale); 
+                let alpha = 0.7 + depthNorm; 
+                
+                if (alpha < 0.1) alpha = 0.1;
+                if (alpha > 0.4) alpha = 0.4;
+
+                ctx.fillStyle = `rgba(122, 64, 153, ${alpha})`;
+                ctx.shadowBlur = alpha > 0.3 ? 5 : 0; 
+                ctx.shadowColor = "#7a4099"; 
+                
+                ctx.fillText(p.text, px, py);
+            });
+
+            requestAnimationFrame(drawHeart);
+        }
+
+        drawHeart(); 
+        
+        // --- ТЕРМИНАЛ ---
+        const terminal = document.getElementById('terminal');
+        let isAuthorized = false;
+        let enteredPass = "";
+
+        const files = {
+            "readme.txt": "SYSTEM IN SAFE MODE.\nMain gift archive is locked.\nUse command 'auth <password>' to unlock.\nRefer to system logs for password generation hints.",
+            "sys_error.log": "[11:52:01] CRITICAL MEMORY FAILURE\n[11:52:02] Auto-lock engaged.\n[11:52:03] SYSTEM MESSAGE FOR ADMINISTRATOR:\nPassword reset. Hint: reversed date of birth (no dots).",
+            "gift_archive.enc": "01011001 01001111 01010101 00100000 01010111 01001111 01001110\n[FILE ENCRYPTED. ACCESS DENIED]"
+        };
+
+        function printLine(text, delay = 0) {
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    const div = document.createElement('div');
+                    div.textContent = text;
+                    terminal.appendChild(div);
+                    scrollToBottom();
+                    resolve();
+                }, delay);
+            });
+        }
+
+        async function typeText(text, delay = 20) {
+            const span = document.createElement('span'); 
+            terminal.appendChild(span);
+
+            for (let i = 0; i < text.length; i++) {
+                span.textContent += text.charAt(i);
+                scrollToBottom();
+                await new Promise(r => setTimeout(r, delay));
+            }
+            if (text.endsWith('\n')) {
+                terminal.appendChild(document.createElement('br'));
+            }
+        }
+
+        function scrollToBottom() {
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        function createInputLine(promptString, callback) {
+            const line = document.createElement('div');
+            line.className = 'input-line';
+
+            const prompt = document.createElement('span');
+            prompt.className = 'prompt';
+            prompt.textContent = promptString;
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.autocomplete = 'off';
+            input.spellcheck = false;
+
+            const cursor = document.createElement('span');
+            cursor.className = 'cursor';
+
+            input.addEventListener('input', () => {
+                input.style.width = (input.value.length + 1) + 'ch';
+            });
+
+            line.appendChild(prompt);
+            line.appendChild(input);
+            line.appendChild(cursor);
+            terminal.appendChild(line);
+
+            input.focus();
+            scrollToBottom();
+
+            input.addEventListener('keydown', async function(e) {
+                if (e.key === 'Enter') {
+                    const val = this.value.trim();
+                    this.disabled = true;
+                    cursor.remove();
+                    await callback(val);
+                }
+            });
+        }
+
+        document.addEventListener('click', () => {
+            const activeInput = terminal.querySelector('input:not([disabled])');
+            if (activeInput) activeInput.focus();
+        });
+
+        async function checkDevice() {
+            const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            const isSmallTouch = window.innerWidth <= 800 && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+
+            if (isMobileUA || isSmallTouch) {
+                document.body.style.background = '#FFFFFF';
+                document.body.style.color = '#000000';
+                document.body.style.textShadow = 'none';
+                terminal.style.textShadow = 'none';
+                document.getElementById('heartCanvas').style.display = 'none';
+                
+                const currentUrl = window.location.href;
+                terminal.style.width = '100%';
+                terminal.style.padding = '0';
+                
+                terminal.innerHTML = `
+                    <div style="position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content:flex-start; padding-top:100px; overflow: hidden;">
+                        <div style="position: relative; width: 100%; height: 45vh;">
+                            <img src="kaneki.jpg" style="
+                                position:absolute;
+                                right:-20%;
+                                top:70%;
+                                transform:translateY(-50%);
+                                height:100vh;
+                                width:auto;
+                                opacity:.45;
+                                pointer-events:none;
+                                z-index:0;
+                            ">
+                        </div>
+                        <div style="position: relative; text-align: center; z-index: 1; padding: 0 20px;">
+                            <div style="color: #000000; font-weight: bold; font-size: 1.4em; letter-spacing: 2px; margin-bottom: 20px;">[SYSTEM LOCKED] : This terminal is unavailable<br>from mobile devices.</div>
+                            <div style="color: #000000; margin-bottom: 30px; font-size: .95em; letter-spacing:1px; line-height:1.6;">To continue the initialization,<br>open this page on a desktop computer.</div>
+                            
+                            <div style="margin: 0 auto 15px auto; padding: 10px; border: 2px solid #000; word-break: break-all; user-select: all; max-width: 300px; font-size: 0.85em; font-weight: bold; background: rgba(255,255,255,0.4);">${currentUrl}</div>
+                            <div id="copy-btn" style="cursor: pointer; padding: 12px 15px; border: 2px solid #000000; background:white; letter-spacing:2px; display: inline-block; font-weight: bold; font-size: 0.9em;">[Copy the link below]</div>
+                            
+                            <br><br><br>
+                            <div id="force-btn" style="cursor: pointer; opacity: 0.3; font-size: 0.7em; text-decoration: underline;">[ Override: I am on a PC ]</div>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('copy-btn').addEventListener('click', function() {
+                    if (navigator.clipboard && window.isSecureContext) {
+                        navigator.clipboard.writeText(currentUrl);
+                    } else {
+                        const tempInput = document.createElement('textarea');
+                        tempInput.value = currentUrl;
+                        document.body.appendChild(tempInput);
+                        tempInput.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(tempInput);
+                    }
+                    this.textContent = "[ LINK COPIED! ]";
+                    this.style.backgroundColor = "#000000";
+                    this.style.color = "#FFFFFF";
+                });
+
+                document.getElementById('force-btn').addEventListener('click', async function() {
+                    document.body.style.background = "linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('images/image2.png') center / cover no-repeat";
+                    document.body.style.color = "#F5F5F5ce";
+                    terminal.style.padding = "20px";
+                    document.getElementById('heartCanvas').style.display = 'block';
+                    terminal.style.width = '70%';
+                    terminal.innerHTML = '';
+                    await startSystem();
+                });
+            } else {
+                await startSystem();
+            }
+        }
+
+        async function startSystem() {
+            await typeText("System initialization...\n", 10);
+            await typeText("Loading personal greeting module [OK]\n", 15);
+            await typeText("с днём рожденииииия, любимость!!", 40);
+            
+            createInputLine("хочешь открыть подарочек? (Y/n): \n\n", handleIntroResponse);
+        }
+
+        async function handleIntroResponse(val) {
+            const negativeAnswers = ['n', 'no', 'нет', 'н', 'ytn'];
+            
+            if (negativeAnswers.includes(val.toLowerCase())) {
+                await printLine("");
+                await typeText("эээм нет...\n", 50);
+                await printLine("");
+                createInputLine("передумать? (Y/n): ", handleIntroResponse);
+            } else {
+                await printLine("");
+                await boot();
+            }
+        }
+
+        async function boot() {
+            await typeText("Booting Nikitos_Kaneki_prime v2.1...\n", 20);
+            await printLine("Warning: File system corruption detected.");
+            await printLine("Type 'help' for a list of available commands.\n");
+            
+            createInputLine("user@local:~$ ", handleCommand);
+        }
+
+        async function handleCommand(val) {
+            if (val) {
+                const args = val.split(/\s+/);
+                const command = args[0].toLowerCase();
+
+                if (command === "help") {
+                    await printLine("Available commands:");
+                    await printLine("  ls          - list directory contents");
+                    await printLine("  cat <file>  - concatenate and print files");
+                    await printLine("  auth <code> - authenticate as administrator");
+                    await printLine("  claim       - extract archive (admin rights required)");
+                    await printLine("  clear       - clear the terminal screen");
+                    await printLine("  exit        - terminate session");
+                } else if (command === "ls") {
+                    await printLine("FILENAME\t\tSIZE\tSTATUS");
+                    await printLine("-----------------------------------------");
+                    for (const f in files) {
+                        const status = (f === "gift_archive.enc" && !isAuthorized) ? "[LOCKED]" : "[OK]";
+                        await printLine(`${f}\t\t1kb\t${status}`);
+                    }
+                } else if (command === "cat") {
+                    if (args.length < 2) {
+                        await printLine("Error: missing filename. Usage: cat readme.txt");
+                    } else {
+                        const filename = args[1];
+                        if (files[filename]) {
+                            if (filename === "gift_archive.enc" && !isAuthorized) {
+                                await printLine("READ ERROR: File encrypted with AES-256. Authentication required.");
+                            } else {
+                                await printLine(`\n--- Reading file: ${filename} ---`);
+                                await printLine(files[filename]);
+                                await printLine("-".repeat(18 + filename.length));
+                            }
+                        } else {
+                            await printLine(`File '${filename}' does not exist in current directory.`);
+                        }
+                    }
+                } else if (command === "auth") {
+                    if (args.length < 2) {
+                        await printLine("Error: missing password. Usage: auth 1234");
+                    } else {
+                        if (args[1] === "50020182") {
+                            isAuthorized = true;
+                            enteredPass = args[1];
+                            files["gift_archive.enc"] = "ARCHIVE READY FOR EXTRACTION. Run 'claim' command.";
+                            await typeText("\n[||||||||||||||||||||] 100% Verification complete.\n", 10);
+                            await printLine("Administrator rights restored. File gift_archive.enc decrypted.");
+                        } else {
+                            await printLine("ACCESS DENIED: Incorrect password.");
+                        }
+                    }
+                } else if (command === "claim") {
+                    if (isAuthorized) {
+                        await typeText("\nDecrypting gift sectors...\n", 30);
+                        await printLine("\n==================================================");
+                        await printLine("с днём рожденииииия, любимость!!");
+                        await printLine("Доступ к системе полностью восстановлен.");
+                        await printLine("Твой подарочек в стиме:");
+
+                        // Расшифровка ключа на лету с помощью пароля (когда будет настоящий ключ, мы вставим сюда его массив цифр)
+                        const encryptedData = [5,96,103,113,97,28,14,7,112,7,117,31,126,6,117,100,0];
+                        const decryptedKey = encryptedData.map((code, i) => String.fromCharCode(code ^ enteredPass.charCodeAt(i % enteredPass.length))).join('');
+
+                        const giftBox = document.createElement('div');
+                        giftBox.innerHTML = `
+                            <div style="
+                                display:inline-block;
+                                margin:10px 0;
+                                padding:10px 14px;
+                                border:3px solid #000;
+                                background:#fff;
+                                color:#000;
+                                font:700 18px 'Courier New', monospace;
+                                white-space:nowrap;
+                                user-select:all;
+                            ">
+                                <span id="steam-key" style="font:700 18px 'Courier New', monospace; letter-spacing:1px;">${decryptedKey}</span>
+                            </div>   
+                            <br>
+                            <button id="copy-key" style="
+                                display:inline-block;
+                                margin:10px 0;
+                                padding:10px 14px;
+                                border:3px solid #000;
+                                background:#fff;
+                                color:#000;
+                                font:700 18px 'Courier New', monospace;
+                                letter-spacing:1px;
+                                cursor:pointer;
+                                appearance:none;
+                                -webkit-appearance:none;
+                                outline:none;
+                                white-space:nowrap;
+                            ">COPY KEY</button>
+                        `;
+                        terminal.appendChild(giftBox);
+
+                        const copyBtn = giftBox.querySelector("#copy-key");
+                        copyBtn.onclick = async () => {
+                            const keyText = giftBox.querySelector("#steam-key").textContent.trim();
+                            if (navigator.clipboard && window.isSecureContext) {
+                                await navigator.clipboard.writeText(keyText);
+                            } else {
+                                const temp = document.createElement('textarea');
+                                temp.value = keyText;
+                                document.body.appendChild(temp);
+                                temp.select();
+                                document.execCommand('copy');
+                                document.body.removeChild(temp);
+                            }
+                            await printLine("✓ Steam key copied!");
+                        };
+
+                        await printLine("==================================================\n");
+                    } else {
+                        await printLine("Error: Administrator privileges required to execute this command.");
+                    }
+                } else if (command === "sudo") {
+                    await printLine("user is not in the sudoers file. ахахаха нееееет.");
+                } else if (command === "whoami") {
+                    await printLine("User 'nikita_kaneki_prime'. Status: Nikita Kaneki Prime (non-admin).");
+                } else if (command === "pwd") {
+                    await printLine("/home/diana/projects/top_secret_gift");
+                } else if (command === "clear") {
+                    terminal.innerHTML = '';
+                } else if (command === "exit") {
+                    await typeText("Disconnecting from server...\n", 20);
+                    await printLine("Session terminated. You can close the tab.");
+                } else {
+                    await printLine(`${command}: command not found. Type 'help'.`);
+                }
+            }
+            
+            createInputLine("user@local:~$ ", handleCommand);
+        }
+
+        checkDevice();
+    </script>
+</body>
+</html>
